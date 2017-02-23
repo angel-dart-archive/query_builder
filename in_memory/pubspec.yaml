@@ -1,0 +1,12 @@
+name: _data_store_in_memory
+version: 0.0.0
+description: In-memory repository class for package:data_store.
+author: Tobe O <thosakwe@gmail.com>
+homepage: https://github.com/angel-dart/data_store.git
+environment:
+  sdk: ">=1.19.0"
+dependencies:
+  data_store:
+    path: ../data_store
+dev_dependencies:
+  test: ^0.12.0

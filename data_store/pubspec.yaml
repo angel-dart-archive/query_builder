@@ -1,0 +1,9 @@
+name: data_store
+version: 0.0.0
+description: Database-agnostic ORM for Dart applications.
+author: Tobe O <thosakwe@gmail.com>
+homepage: https://github.com/thosakwe/data_store.git
+environment:
+  sdk: ">=1.19.0"
+dev_dependencies:
+  test: ^0.12.0
