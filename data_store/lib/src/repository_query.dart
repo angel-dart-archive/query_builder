@@ -54,6 +54,8 @@ abstract class RepositoryQuery<T> {
 
   RepositoryQuery<T> unionAll(RepositoryQuery<T> other);
 
+  Future<List<UpdateResult<T>>> updateAll(Map<String, dynamic> fields);
+
   RepositoryQuery<T> when(
       bool condition, RepositoryQuery<T> ifTrue(RepositoryQuery<T> query),
       [RepositoryQuery<T> ifFalse(RepositoryQuery<T> query)]) {

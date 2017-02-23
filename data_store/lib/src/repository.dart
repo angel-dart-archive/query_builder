@@ -22,9 +22,9 @@ abstract class Repository<T> {
 
   SingleQuery<T> find(String id) => all().where('id', id).first();
 
-  Future<CreationResult> insert(data);
+  Future<InsertionResult> insert(data);
 
-  Future<CreationResult> insertAll(Iterable data);
+  Future<InsertionResult> insertAll(Iterable data);
 
   RepositoryQuery<T> raw(query);
 
