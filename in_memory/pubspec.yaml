@@ -1,12 +1,13 @@
-name: data_store_in_memory
+name: query_builder_in_memory
 version: 0.0.0
-description: In-memory repository class for package:data_store.
+description: In-memory repository class for package:query_builder.
 author: Tobe O <thosakwe@gmail.com>
-homepage: https://github.com/angel-dart/data_store.git
+homepage: https://github.com/thosakwe/query_builder/tree/master/in_memory
 environment:
   sdk: ">=1.19.0"
 dependencies:
-  data_store:
-    path: ../data_store
+  mutex: ^0.0.1
+  query_builder:
+    path: ../query_builder
 dev_dependencies:
   test: ^0.12.0

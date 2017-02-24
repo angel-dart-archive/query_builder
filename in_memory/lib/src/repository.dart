@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'package:data_store/data_store.dart';
+import 'package:mutex/mutex.dart';
+import 'package:query_builder/query_builder.dart';
+import 'builder.dart';
 import 'repository_query.dart';
 
 // TODO: Add change event support
@@ -7,16 +9,19 @@ class MapRepository extends Repository<Map<String, dynamic>> {
   final StreamController<ChangeEvent<Map<String, dynamic>>> _changes =
       new StreamController<ChangeEvent<Map<String, dynamic>>>.broadcast();
   final Map<String, Map<String, dynamic>> _items = {};
+  final ReadWriteMutex _mutex = new ReadWriteMutex();
 
   @override
-  RepositoryQuery<Map<String, dynamic>> all() =>
-      new MapRepositoryQuery(_items, _changes.stream);
+  RepositoryQuery<Map<String, dynamic>> all() {
+    return new MapRepositoryQuery(
+        new InMemoryQueryBuilder(_mutex, _items, _items.values, _changes));
+  }
 
   @override
   Future<InsertionResult> insert(data) async {
     assert(data is Map, 'MapRepository only supports Maps.');
-    String id = _items.length.toString();
-    Map item = {}
+    var id = _items.length;
+    Map<String, dynamic> item = {}
       ..addAll(data)
       ..['id'] = id;
     _items[id] = item;
@@ -30,8 +35,8 @@ class MapRepository extends Repository<Map<String, dynamic>> {
     var createdIds = <String>[], createdItems = <Map<String, dynamic>>[];
 
     for (Map<String, dynamic> datum in data) {
-      String id = _items.length.toString();
-      Map item = {}
+      var id = _items.length;
+      Map<String, dynamic> item = {}
         ..addAll(datum)
         ..['id'] = id;
       _items[id] = item;

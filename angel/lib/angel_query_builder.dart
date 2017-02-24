@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'dart:mirrors';
 import 'package:angel_framework/angel_framework.dart';
-import 'package:data_store/data_store.dart';
+import 'package:query_builder/query_builder.dart';
 
 // Extends a `data_store` query.
 typedef RepositoryQuery<T> QueryCallback<T>(RepositoryQuery<T> query);
@@ -30,11 +29,7 @@ class RepositoryService<T> extends Service {
       this.allowQuery: true,
       this.debug: false,
       this.listenForChanges: false})
-      : super() {
-    if (!reflectType(T).isAssignableTo(reflectType(Model)))
-      throw new Exception(
-          "If you specify a type for RepositoryService, it must extend Model.");
-  }
+      : super() {}
 
   RepositoryQuery<T> buildQuery(RepositoryQuery<T> initialQuery, Map params) {
     if (params != null)

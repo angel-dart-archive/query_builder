@@ -1,4 +1,4 @@
-import 'package:data_store/data_store.dart';
+import 'package:query_builder/query_builder.dart';
 import 'repository.dart';
 
 class InMemoryDataStore extends DataStore {

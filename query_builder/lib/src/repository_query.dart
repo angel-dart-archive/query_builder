@@ -33,16 +33,19 @@ abstract class RepositoryQuery<T> {
   /// is resolved.
   RepositoryQuery<T> mutex();
 
-  RepositoryQuery<T> orderBy(String fieldName, OrderBy orderBy);
+  RepositoryQuery<T> orderBy(String fieldName,
+      [OrderBy orderBy = OrderBy.ASCENDING]);
+
+  Future<List<U>> map<U>(U convert(T t)) => get().map<U>(convert).toList();
 
   Future<num> max(String fieldName);
 
   RepositoryQuery<T> oldest([String fieldName = 'created_at']) =>
       orderBy(fieldName, OrderBy.ASCENDING);
 
-  Future<List<U>> pluck<U>(String fieldName);
+  Future<Iterable<U>> pluck<U>(Iterable<String> fieldNames);
 
-  RepositoryQuery<T> select(List selectors);
+  RepositoryQuery<T> select(Iterable selectors);
 
   RepositoryQuery<T> skip(int count);
 
@@ -54,7 +57,7 @@ abstract class RepositoryQuery<T> {
 
   RepositoryQuery<T> unionAll(RepositoryQuery<T> other);
 
-  Future<List<UpdateResult<T>>> updateAll(Map<String, dynamic> fields);
+  Future<Iterable<UpdateResult<T>>> updateAll(Map<String, dynamic> fields);
 
   RepositoryQuery<T> when(
       bool condition, RepositoryQuery<T> ifTrue(RepositoryQuery<T> query),
@@ -65,7 +68,11 @@ abstract class RepositoryQuery<T> {
     return this;
   }
 
-  WhereQuery<T> where(String fieldName, value);
+  WhereQuery<T> where(String fieldName, value) =>
+      whereEquality(fieldName, value, Equality.EQUAL);
+
+  WhereQuery<T> whereNot(String fieldName, value) =>
+      whereEquality(fieldName, value, Equality.NOT_EQUAL);
 
   WhereQuery<T> whereBetween(String fieldName, Iterable values);
 
@@ -97,7 +104,7 @@ abstract class RepositoryQuery<T> {
 
   WhereQuery<T> whereNotNull(String fieldName);
 
-  Future<List> chunk(int threshold, FutureOr callback(List<T> items)) {
+  Future<Iterable> chunk(int threshold, FutureOr callback(List<T> items)) {
     var c = new Completer<List>();
     StreamSubscription<T> sub;
     List results = [];
