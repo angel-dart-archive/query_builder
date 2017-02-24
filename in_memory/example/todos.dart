@@ -1,7 +1,6 @@
 import 'package:query_builder/query_builder.dart';
 import 'package:query_builder_in_memory/query_builder_in_memory.dart';
-
-void printBullet(x) => print('  * $x');
+import 'common.dart';
 
 main() async {
   var store = new InMemoryDataStore();

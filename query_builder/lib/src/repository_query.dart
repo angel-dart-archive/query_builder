@@ -68,41 +68,41 @@ abstract class RepositoryQuery<T> {
     return this;
   }
 
-  WhereQuery<T> where(String fieldName, value) =>
+  RepositoryQuery<T> where(String fieldName, value) =>
       whereEquality(fieldName, value, Equality.EQUAL);
 
-  WhereQuery<T> whereNot(String fieldName, value) =>
+  RepositoryQuery<T> whereNot(String fieldName, value) =>
       whereEquality(fieldName, value, Equality.NOT_EQUAL);
 
-  WhereQuery<T> whereBetween(String fieldName, Iterable values);
+  RepositoryQuery<T> whereBetween(String fieldName, Iterable values);
 
-  WhereQuery<T> whereNotBetween(String fieldName, Iterable values);
+  RepositoryQuery<T> whereNotBetween(String fieldName, Iterable values);
 
-  WhereQuery<T> whereColumn(String first, String second);
+  RepositoryQuery<T> whereColumn(String first, String second);
 
-  WhereQuery<T> whereDate(String fieldName, DateTime date);
+  RepositoryQuery<T> whereDate(String fieldName, DateTime date);
 
-  WhereQuery<T> whereDay(String fieldName, int day);
+  RepositoryQuery<T> whereDay(String fieldName, int day);
 
-  WhereQuery<T> whereMonth(String fieldName, int month);
+  RepositoryQuery<T> whereMonth(String fieldName, int month);
 
-  WhereQuery<T> whereYear(String fieldName, int year);
+  RepositoryQuery<T> whereYear(String fieldName, int year);
 
-  WhereQuery<T> whereIn(String fieldName, Iterable values);
+  RepositoryQuery<T> whereIn(String fieldName, Iterable values);
 
-  WhereQuery<T> whereNotIn(String fieldName, Iterable values);
+  RepositoryQuery<T> whereNotIn(String fieldName, Iterable values);
 
-  WhereQuery<T> whereEquality(String fieldName, value, Equality equality);
+  RepositoryQuery<T> whereEquality(String fieldName, value, Equality equality);
 
-  WhereQuery<T> whereExists(builder(RepositoryQuery<T> query));
+  RepositoryQuery<T> whereHasField(String fieldName);
 
-  WhereQuery<T> whereLike(String fieldName, value);
+  RepositoryQuery<T> whereLike(String fieldName, value);
 
-  WhereQuery<T> whereJson(String fieldName, value);
+  RepositoryQuery<T> whereJson(String fieldName, value);
 
-  WhereQuery<T> whereNull(String fieldName);
+  RepositoryQuery<T> whereNull(String fieldName);
 
-  WhereQuery<T> whereNotNull(String fieldName);
+  RepositoryQuery<T> whereNotNull(String fieldName);
 
   Future<Iterable> chunk(int threshold, FutureOr callback(List<T> items)) {
     var c = new Completer<List>();
@@ -135,8 +135,4 @@ abstract class RepositoryQuery<T> {
 
     return c.future;
   }
-}
-
-abstract class WhereQuery<T> extends RepositoryQuery<T> {
-  // TODO: Or queries
 }

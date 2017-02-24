@@ -51,9 +51,8 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  RepositoryQuery<Map<String, dynamic>> groupBy(String fieldName) {
-    // TODO: implement groupBy
-  }
+  RepositoryQuery<Map<String, dynamic>> groupBy(String fieldName) =>
+      orderBy(fieldName);
 
   @override
   RepositoryQuery<Map<String, dynamic>> inRandomOrder() {
@@ -90,6 +89,8 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
             var first = a[fieldName], second = b[fieldName];
 
             if (first is num && second is num)
+              return first.compareTo(second);
+            else if (first is DateTime && second is DateTime)
               return first.compareTo(second);
             else if (first is Iterable && second is Iterable)
               return first.length.compareTo(second.length);
@@ -186,30 +187,36 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
     // TODO: implement updateAll
   }
   @override
-  WhereQuery<Map<String, dynamic>> whereBetween(
+  RepositoryQuery<Map<String, dynamic>> whereBetween(
       String fieldName, Iterable values) {
     // TODO: implement whereBetween
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereColumn(String first, String second) {
+  RepositoryQuery<Map<String, dynamic>> whereColumn(
+      String first, String second) {
     // TODO: implement whereColumn
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereDate(String fieldName, DateTime date) {
+  RepositoryQuery<Map<String, dynamic>> whereDate(
+      String fieldName, DateTime date) {
     // TODO: implement whereDate
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereDay(String fieldName, int day) {
-    // TODO: implement whereDay
+  RepositoryQuery<Map<String, dynamic>> whereDay(String fieldName, int day) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m[fieldName] is DateTime && m[fieldName].day == day;
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereEquality(
+  RepositoryQuery<Map<String, dynamic>> whereEquality(
       String fieldName, value, Equality equality) {
-    return new MapWhereQuery(_builder, _builder.items.where((m) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
       if (!m.containsKey(fieldName))
         return false;
       else {
@@ -230,202 +237,81 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
         else
           return false;
       }
-    }));
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereExists(
-      builder(RepositoryQuery<Map<String, dynamic>> query)) {
-    // TODO: implement whereExists
+  RepositoryQuery<Map<String, dynamic>> whereHasField(String fieldName) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m.containsKey(fieldName);
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereIn(String fieldName, Iterable values) {
-    // TODO: implement whereIn
+  RepositoryQuery<Map<String, dynamic>> whereIn(
+      String fieldName, Iterable values) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m.containsKey(fieldName) && values.contains(m[fieldName]);
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereJson(String fieldName, value) {
+  RepositoryQuery<Map<String, dynamic>> whereJson(String fieldName, value) {
     // TODO: implement whereJson
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereLike(String fieldName, value) {
+  RepositoryQuery<Map<String, dynamic>> whereLike(String fieldName, value) {
     // TODO: implement whereLike
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereMonth(String fieldName, int month) {
-    // TODO: implement whereMonth
+  RepositoryQuery<Map<String, dynamic>> whereMonth(
+      String fieldName, int month) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m[fieldName] is DateTime && m[fieldName].month == month;
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereNotBetween(
+  RepositoryQuery<Map<String, dynamic>> whereNotBetween(
       String fieldName, Iterable values) {
     // TODO: implement whereNotBetween
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereNotIn(
+  RepositoryQuery<Map<String, dynamic>> whereNotIn(
       String fieldName, Iterable values) {
-    // TODO: implement whereNotIn
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m.containsKey(fieldName) && !values.contains(m[fieldName]);
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereNotNull(String fieldName) {
-    // TODO: implement whereNotNull
+  RepositoryQuery<Map<String, dynamic>> whereNotNull(String fieldName) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m.containsKey(fieldName) && m[fieldName] == null;
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereNull(String fieldName) {
-    // TODO: implement whereNull
+  RepositoryQuery<Map<String, dynamic>> whereNull(String fieldName) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m.containsKey(fieldName) && m[fieldName] == null;
+    })));
   }
 
   @override
-  WhereQuery<Map<String, dynamic>> whereYear(String fieldName, int year) {
-    // TODO: implement whereYear
+  RepositoryQuery<Map<String, dynamic>> whereYear(String fieldName, int year) {
+    return new MapRepositoryQuery(
+        _builder.changeItems(_builder.items.where((m) {
+      return m[fieldName] is DateTime && m[fieldName].year == year;
+    })));
   }
-}
-
-class MapWhereQuery extends WhereQuery<Map<String, dynamic>> {
-  final InMemoryQueryBuilder _builder;
-  MapRepositoryQuery _inner;
-
-  MapWhereQuery(this._builder, Iterable<Map<String, dynamic>> items) {
-    _inner = new MapRepositoryQuery(_builder.changeItems(items));
-  }
-  @override
-  Future<num> average(String fieldName) => _inner.average(fieldName);
-
-  @override
-  Stream<ChangeEvent<Map<String, dynamic>>> changes() => _inner.changes();
-
-  @override
-  Future<int> count() => _inner.count();
-
-  @override
-  Future<DeletionResult<Map<String, dynamic>>> delete() => _inner.delete();
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> distinct() => _inner.distinct();
-
-  @override
-  SingleQuery<Map<String, dynamic>> first() => _inner.first();
-
-  @override
-  Stream<Map<String, dynamic>> get() => _inner.get();
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> groupBy(String fieldName) =>
-      _inner.groupBy(fieldName);
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> inRandomOrder() =>
-      _inner.inRandomOrder();
-
-  @override
-  Future<num> max(String fieldName) => _inner.max(fieldName);
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> mutex() => _inner.mutex();
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> orderBy(String fieldName,
-          [OrderBy orderBy = OrderBy.ASCENDING]) =>
-      _inner.orderBy(fieldName, orderBy ?? OrderBy.ASCENDING);
-
-  @override
-  Future<Iterable>
-      pluck<U>(Iterable<String> fieldNames) => _inner.pluck<U>(fieldNames);
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> select(Iterable selectors) =>
-      _inner.select(selectors);
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> skip(int count) => _inner.skip(count);
-
-  @override
-  Future<num> sum(String fieldName) => _inner.sum(fieldName);
-  @override
-  RepositoryQuery<Map<String, dynamic>> take(int count) => _inner.take(count);
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> union(
-          RepositoryQuery<Map<String, dynamic>> other) =>
-      _inner.union(other);
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> unionAll(
-          RepositoryQuery<Map<String, dynamic>> other) =>
-      _inner.unionAll(other);
-
-  @override
-  Future<Iterable<UpdateResult<Map<String, dynamic>>>> updateAll(
-          Map<String, dynamic> fields) =>
-      _inner.updateAll(fields);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereBetween(
-          String fieldName, Iterable values) =>
-      _inner.whereBetween(fieldName, values);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereColumn(String first, String second) =>
-      _inner.whereColumn(first, second);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereDate(String fieldName, DateTime date) =>
-      _inner.whereDate(fieldName, date);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereDay(String fieldName, int day) =>
-      _inner.whereDay(fieldName, day);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereEquality(
-          String fieldName, value, Equality equality) =>
-      _inner.whereEquality(fieldName, value, equality);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereExists(
-          builder(RepositoryQuery<Map<String, dynamic>> query)) =>
-      _inner.whereExists(builder);
-  @override
-  WhereQuery<Map<String, dynamic>> whereIn(String fieldName, Iterable values) =>
-      _inner.whereIn(fieldName, values);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereJson(String fieldName, value) =>
-      _inner.whereJson(fieldName, value);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereLike(String fieldName, value) =>
-      _inner.whereLike(fieldName, value);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereMonth(String fieldName, int month) =>
-      _inner.whereMonth(fieldName, month);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereNotBetween(
-          String fieldName, Iterable values) =>
-      _inner.whereNotBetween(fieldName, values);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereNotIn(
-          String fieldName, Iterable values) =>
-      _inner.whereNotIn(fieldName, values);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereNotNull(String fieldName) =>
-      _inner.whereNotNull(fieldName);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereNull(String fieldName) =>
-      _inner.whereNull(fieldName);
-
-  @override
-  WhereQuery<Map<String, dynamic>> whereYear(String fieldName, int year) =>
-      _inner.whereYear(fieldName, year);
 }
