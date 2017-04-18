@@ -16,7 +16,8 @@ and allows you to build fluent queries that run on virtually any database.
 find it useful because they only need to learn one DSL for any database they use.
 
 The [Angel](https://github.com/angel-dart/angel)
-framework already provides *services*, a powerful abstraction over data stores that provides
+framework already provides
+[*services*](https://github.com/angel-dart/angel/wiki/Service-Basics), a powerful abstraction over data stores that provides
 CRUD functionality in addition to automatic REST API's, WebSockets and more. `query_builder`
 can be easily used with Angel to provide services for data stores that do not have their own
 built-in support, such as PostgreSQL or MySQL.
