@@ -7,6 +7,13 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   final MongoQueryBuilder builder;
 
   MongoRepositoryQuery(this.builder);
+
+  MongoRepositoryQuery _changeBuilder(
+      mgo.SelectorBuilder apply(mgo.SelectorBuilder builder)) {
+    return new MongoRepositoryQuery(new MongoQueryBuilder(builder.mutex,
+        builder.collection, apply(builder.query ?? mgo.where.exists('_id'))));
+  }
+
   @override
   Future<num> average(String fieldName) {
     // TODO: implement average
@@ -66,7 +73,8 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   @override
   RepositoryQuery<Map<String, dynamic>> orderBy(String fieldName,
       [OrderBy orderBy = OrderBy.ASCENDING]) {
-    // TODO: implement orderBy
+    return _changeBuilder(
+        (q) => q.sortBy(fieldName, descending: orderBy == OrderBy.DESCENDING));
   }
 
   @override
@@ -81,7 +89,7 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
 
   @override
   RepositoryQuery<Map<String, dynamic>> skip(int count) {
-    // TODO: implement skip
+    return _changeBuilder((q) => q.skip(count));
   }
 
   @override
@@ -91,20 +99,24 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
 
   @override
   RepositoryQuery<Map<String, dynamic>> take(int count) {
-    // TODO: implement take
+    return _changeBuilder((q) => q.limit(count));
   }
 
   @override
   RepositoryQuery<Map<String, dynamic>> union(
       RepositoryQuery<Map<String, dynamic>> other) {
-    // TODO: implement union
+    if (other is MongoRepositoryQuery)
+      return _changeBuilder(
+          (q) => q.and(other.builder.query ?? mgo.where.exists('_id')));
+    else
+      throw new ArgumentError(
+          'MongoRepositoryQueries can only be unioned with other MongoRepositoryQueries.');
   }
 
   @override
   RepositoryQuery<Map<String, dynamic>> unionAll(
-      RepositoryQuery<Map<String, dynamic>> other) {
-    // TODO: implement unionAll
-  }
+          RepositoryQuery<Map<String, dynamic>> other) =>
+      union(other);
 
   @override
   Future<Iterable<UpdateResult<Map<String, dynamic>>>> updateAll(
@@ -127,7 +139,8 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   @override
   RepositoryQuery<Map<String, dynamic>> whereDate(
       String fieldName, DateTime date) {
-    // TODO: implement whereDate
+    return _changeBuilder((q) =>
+        q.gte(fieldName, date).lt(fieldName, date.add(new Duration(days: 1))));
   }
 
   @override
@@ -138,12 +151,26 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   @override
   RepositoryQuery<Map<String, dynamic>> whereEquality(
       String fieldName, value, Equality equality) {
-    // TODO: implement whereEquality
+    if (equality == Equality.EQUAL)
+      return _changeBuilder((q) => q.and(mgo.where.eq(fieldName, value)));
+    else if (equality == Equality.GREATER_THAN)
+      return _changeBuilder((q) => q.gt(fieldName, value));
+    else if (equality == Equality.GREATER_THAN_OR_EQUAL_TO)
+      return _changeBuilder((q) => q.gte(fieldName, value));
+    else if (equality == Equality.LESS_THAN)
+      return _changeBuilder((q) => q.lt(fieldName, value));
+    else if (equality == Equality.LESS_THAN_OR_EQUAL_TO)
+      return _changeBuilder((q) => q.lte(fieldName, value));
+    else if (equality == Equality.LESS_THAN_OR_GREATER_THAN)
+      return _changeBuilder(
+          (q) => q.lt(fieldName, value).or(mgo.where.gt(fieldName, value)));
+    else
+      return _changeBuilder((q) => q.ne(fieldName, value));
   }
 
   @override
   RepositoryQuery<Map<String, dynamic>> whereHasField(String fieldName) {
-    // TODO: implement whereHasField
+    return _changeBuilder((q) => q.exists(fieldName));
   }
 
   @override
@@ -182,12 +209,12 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
 
   @override
   RepositoryQuery<Map<String, dynamic>> whereNotNull(String fieldName) {
-    // TODO: implement whereNotNull
+    return _changeBuilder((q) => q.and(mgo.where.ne(fieldName, null)));
   }
 
   @override
   RepositoryQuery<Map<String, dynamic>> whereNull(String fieldName) {
-    // TODO: implement whereNull
+    return _changeBuilder((q) => q.and(mgo.where.eq(fieldName, null)));
   }
 
   @override

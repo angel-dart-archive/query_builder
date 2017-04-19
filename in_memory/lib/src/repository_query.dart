@@ -41,9 +41,8 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  SingleQuery<Map<String, dynamic>> first() {
-    // TODO: implement first
-  }
+  SingleQuery<Map<String, dynamic>> first() => new MapRepositorySingleQuery(
+      _builder.items.isEmpty ? null : _builder.items.first);
 
   @override
   Stream<Map<String, dynamic>> get() async* {
@@ -70,11 +69,6 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
     }
 
     return result;
-  }
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> mutex() {
-    return this.._builder.useMutex = true;
   }
 
   @override
@@ -313,5 +307,42 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
         _builder.changeItems(_builder.items.where((m) {
       return m[fieldName] is DateTime && m[fieldName].year == year;
     })));
+  }
+}
+
+class MapRepositorySingleQuery extends SingleQuery<Map<String, dynamic>> {
+  final Map<String, dynamic> item;
+
+  MapRepositorySingleQuery(this.item);
+
+  @override
+  Future<DeletionResult<Map<String, dynamic>>> delete() {
+    // TODO: implement delete
+  }
+
+  @override
+  Future<Map<String, dynamic>> get() async => item;
+
+  @override
+  SingleQuery<Map<String, dynamic>> increment(String fieldName,
+      [int amount = 1, Map<String, dynamic> additionalFields = const {}]) {
+    // TODO: implement increment
+  }
+
+  @override
+  Future<UpdateResult<Map<String, dynamic>>> update(
+      Map<String, dynamic> fields) {
+    // TODO: implement update
+  }
+
+  @override
+  Future<UpdateResult<Map<String, dynamic>>> updateJson(
+      String fieldName, value) {
+    // TODO: implement updateJson
+  }
+
+  @override
+  SingleQuery value<U>(String fieldName) {
+    // TODO: implement value
   }
 }

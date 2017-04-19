@@ -2,7 +2,7 @@ author: "Tobe O <thosakwe@gmail.com>"
 description: "Powerful, database-agnostic query builder for Dart applications."
 homepage: "https://github.com/thosakwe/query_builder/tree/master/query_builder"
 name: "query_builder"
-version: "0.0.0"
+version: 0.0.1
 dev_dependencies: 
   test: "^0.12.0"
 environment: 

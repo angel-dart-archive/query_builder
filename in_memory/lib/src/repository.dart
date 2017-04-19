@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:mutex/mutex.dart';
 import 'package:query_builder/query_builder.dart';
 import 'builder.dart';
 import 'repository_query.dart';
@@ -8,38 +7,44 @@ import 'repository_query.dart';
 class MapRepository extends Repository<Map<String, dynamic>> {
   final StreamController<ChangeEvent<Map<String, dynamic>>> _changes =
       new StreamController<ChangeEvent<Map<String, dynamic>>>.broadcast();
-  final Map<String, Map<String, dynamic>> _items = {};
-  final ReadWriteMutex _mutex = new ReadWriteMutex();
+  final List<Map<String, dynamic>> _items = [];
 
   @override
   RepositoryQuery<Map<String, dynamic>> all() {
-    return new MapRepositoryQuery(
-        new InMemoryQueryBuilder(_mutex, _items, _items.values, _changes));
+    return new MapRepositoryQuery(new InMemoryQueryBuilder(_items, _changes));
   }
 
   @override
   Future<InsertionResult> insert(data) async {
-    assert(data is Map, 'MapRepository only supports Maps.');
-    var id = _items.length;
+    if (data is! Map<String, dynamic>)
+      return new InsertionResult(0, false,
+          message: 'MapRepository only supports Maps.');
+
+    var id = _items.length.toString();
     Map<String, dynamic> item = {}
       ..addAll(data)
       ..['id'] = id;
-    _items[id] = item;
+    _items.add(item);
 
     return new InsertionResult(1, true, createdIds: [id], createdItems: [item]);
   }
 
   @override
   Future<InsertionResult> insertAll(Iterable data) async {
-    assert(data.every((x) => x is Map), 'MapRepository only supports Maps.');
+    if (!data.every((x) => x is Map))
+      return new InsertionResult(0, false,
+          message: 'MapRepository only supports Maps.');
+
     var createdIds = <String>[], createdItems = <Map<String, dynamic>>[];
 
     for (Map<String, dynamic> datum in data) {
-      var id = _items.length;
+      var id = _items.length.toString();
       Map<String, dynamic> item = {}
         ..addAll(datum)
         ..['id'] = id;
-      _items[id] = item;
+      _items.add(item);
+      createdIds.add(id);
+      createdItems.add(item);
     }
 
     return new InsertionResult(createdItems.length, true,

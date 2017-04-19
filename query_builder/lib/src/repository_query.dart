@@ -29,10 +29,6 @@ abstract class RepositoryQuery<T> {
 
   // TODO: Join
 
-  /// Prevents any other queries from being run on the repository until this one
-  /// is resolved.
-  RepositoryQuery<T> mutex();
-
   RepositoryQuery<T> orderBy(String fieldName,
       [OrderBy orderBy = OrderBy.ASCENDING]);
 
