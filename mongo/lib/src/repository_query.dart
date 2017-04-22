@@ -2,32 +2,58 @@ import 'dart:async';
 import 'package:mongo_dart/mongo_dart.dart' as mgo;
 import 'package:query_builder/query_builder.dart';
 import 'builder.dart';
+import 'single_query.dart';
 
 class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
+  final bool _serializeId;
   final MongoQueryBuilder builder;
 
-  MongoRepositoryQuery(this.builder);
+  MongoRepositoryQuery(this.builder, this._serializeId);
 
   MongoRepositoryQuery _changeBuilder(
       mgo.SelectorBuilder apply(mgo.SelectorBuilder builder)) {
-    return new MongoRepositoryQuery(new MongoQueryBuilder(builder.mutex,
-        builder.collection, apply(builder.query ?? mgo.where.exists('_id'))));
+    return new MongoRepositoryQuery(
+        new MongoQueryBuilder(builder.collection,
+            apply(builder.query ?? mgo.where.exists('_id'))),
+        _serializeId != false);
   }
 
-  @override
-  Future<num> average(String fieldName) async {
-    // TODO: implement average
+  Map<String, dynamic> _serialize(Map<String, dynamic> map) {
+    if (!_serializeId) return map;
+
+    return map.keys.fold<Map<String, dynamic>>({}, (out, k) {
+      var v = map[k];
+
+      if (v is mgo.ObjectId && _serializeId)
+        return out..[k] = v.toHexString();
+      else if (v is Map<String, dynamic>)
+        return out..[k] = _serialize(v);
+      else if (v is Iterable)
+        return out
+          ..[k] = v
+              .map((x) => x is! Map<String, dynamic> ? x : _serialize(x))
+              .toList();
+      else
+        return out..[k] = v;
+    });
+  }
+
+  Future<num> _numeric(String type, String fieldName) async {
     var result = await builder.collection.aggregate([
+      {r'$match': builder.query.map[r'$query']},
       {
-        r'$project': {
-          'avg': {r'$avg': fieldName}
+        r'$group': {
+          '_id': null,
+          'result': {type: '\$$fieldName'}
         }
       }
     ]);
 
-    print(result);
-    return -1;
+    return result['result'].first['result'];
   }
+
+  @override
+  Future<num> average(String fieldName) async => _numeric(r'$avg', fieldName);
 
   @override
   Future<int> count() => builder.collection.count(builder.query);
@@ -43,17 +69,18 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  RepositoryQuery<Map<String, dynamic>> distinct() {
+  RepositoryQuery<Map<String, dynamic>> distinct(String fieldName) {
     // TODO: implement distinct
   }
 
   @override
-  SingleQuery<Map<String, dynamic>> first() {
-    // TODO: implement first
-  }
+  SingleQuery<Map<String, dynamic>> first() => new MongoSingleQuery(
+      new MongoSingleQueryBuilder(builder.collection, builder.query),
+      _serializeId != false);
 
   @override
-  Stream<Map<String, dynamic>> get() => builder.collection.find(builder.query);
+  Stream<Map<String, dynamic>> get() =>
+      builder.collection.find(builder.query).map(_serialize);
 
   @override
   RepositoryQuery<Map<String, dynamic>> groupBy(String fieldName) {
@@ -66,14 +93,10 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  Future<num> max(String fieldName) {
-    // TODO: implement max
-  }
+  Future<num> max(String fieldName) => _numeric(r'$max', fieldName);
 
   @override
-  RepositoryQuery<Map<String, dynamic>> mutex() {
-    // TODO: implement mutex
-  }
+  Future<num> min(String fieldName) => _numeric(r'$min', fieldName);
 
   @override
   RepositoryQuery<Map<String, dynamic>> orderBy(String fieldName,

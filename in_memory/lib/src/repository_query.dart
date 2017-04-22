@@ -30,11 +30,22 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  RepositoryQuery<Map<String, dynamic>> distinct() {
+  RepositoryQuery<Map<String, dynamic>> distinct(String fieldName) {
     List<Map<String, dynamic>> result = [];
 
     for (var item in _builder.items) {
-      if (!result.contains(item)) result.add(item);
+      bool add = true;
+
+      if (item.containsKey(fieldName)) {
+        for (var other in result) {
+          if (other[fieldName] == item[fieldName]) {
+            add = false;
+            break;
+          }
+        }
+      }
+
+      if (add) result.add(item);
     }
 
     return new MapRepositoryQuery(_builder.changeItems(result));
@@ -61,10 +72,10 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
 
   @override
   Future<num> max(String fieldName) async {
-    var result = 0;
+    num result;
 
     for (var item in await _builder.apply()) {
-      if (item[fieldName] is num && item[fieldName] > result)
+      if (item[fieldName] is num && (result == null || item[fieldName] > result))
         result = item[fieldName];
     }
 
@@ -308,6 +319,18 @@ class MapRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
       return m[fieldName] is DateTime && m[fieldName].year == year;
     })));
   }
+
+  @override
+  Future<num> min(String fieldName) async {
+    num result;
+
+    for (var item in await _builder.apply()) {
+      if (item[fieldName] is num && (result == null || item[fieldName] < result))
+        result = item[fieldName];
+    }
+
+    return result;
+  }
 }
 
 class MapRepositorySingleQuery extends SingleQuery<Map<String, dynamic>> {
@@ -339,10 +362,5 @@ class MapRepositorySingleQuery extends SingleQuery<Map<String, dynamic>> {
   Future<UpdateResult<Map<String, dynamic>>> updateJson(
       String fieldName, value) {
     // TODO: implement updateJson
-  }
-
-  @override
-  SingleQuery value<U>(String fieldName) {
-    // TODO: implement value
   }
 }

@@ -32,6 +32,8 @@ abstract class RepositoryQuery<T> {
 
   Future<List<U>> map<U>(U convert(T t)) => get().map<U>(convert).toList();
 
+  Future<num> min(String fieldName);
+
   Future<num> max(String fieldName);
 
   RepositoryQuery<T> oldest([String fieldName = 'created_at']) =>

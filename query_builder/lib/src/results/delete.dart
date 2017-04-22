@@ -6,6 +6,7 @@ class DeletionResult<T> {
   final int numberDeleted;
   final bool successful;
   final String message;
+  final StackTrace stackTrace;
 
   List<String> get errors => new List<String>.unmodifiable(_errors);
 
@@ -17,7 +18,8 @@ class DeletionResult<T> {
       {Iterable<String> deletedIds: const [],
       Iterable<T> deletedItems: const [],
       Iterable<String> errors: const [],
-      this.message}) {
+      this.message,
+      this.stackTrace}) {
     _errors.addAll(errors ?? []);
     _deletedIds.addAll(deletedIds ?? []);
     _deletedItems.addAll(deletedItems ?? []);

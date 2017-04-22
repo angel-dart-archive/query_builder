@@ -5,6 +5,7 @@ import 'package:query_builder/src/data_store.dart';
 import 'repository.dart';
 
 class MongoDataStore extends DataStore<Map<String, dynamic>> {
+  bool _closed = false;
   Map<String, MongoRepository> _repositories = {};
 
   final Db db;
@@ -16,6 +17,8 @@ class MongoDataStore extends DataStore<Map<String, dynamic>> {
 
   @override
   MongoRepository repository(String tableName) {
+    if (_closed)
+      throw new StateError('Cannot access a closed InMemoryDataStore.');
     return _repositories.putIfAbsent(
         tableName,
         () => new MongoRepository(
@@ -24,6 +27,8 @@ class MongoDataStore extends DataStore<Map<String, dynamic>> {
 
   @override
   Future close() async {
+    _closed = true;
+
     for (var repo in _repositories.values) {
       await repo.close();
     }

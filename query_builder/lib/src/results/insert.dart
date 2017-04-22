@@ -6,6 +6,7 @@ class InsertionResult<T> {
   final int numberInserted;
   final bool successful;
   final String message;
+  final StackTrace stackTrace;
 
   List<String> get errors => new List<String>.unmodifiable(_errors);
 
@@ -17,7 +18,8 @@ class InsertionResult<T> {
       {Iterable<String> createdIds: const [],
       Iterable<T> createdItems: const [],
       Iterable<String> errors: const [],
-      this.message}) {
+      this.message,
+      this.stackTrace}) {
     _errors.addAll(errors ?? []);
     _insertedIds.addAll(createdIds ?? []);
     _insertedItems.addAll(createdItems ?? []);

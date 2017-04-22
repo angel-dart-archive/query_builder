@@ -4,14 +4,24 @@ import 'builder.dart';
 import 'repository_query.dart';
 
 // TODO: Add change event support
-class MapRepository extends Repository<Map<String, dynamic>> {
+class InMemoryRepository extends Repository<Map<String, dynamic>> {
   final StreamController<ChangeEvent<Map<String, dynamic>>> _changes =
-      new StreamController<ChangeEvent<Map<String, dynamic>>>.broadcast();
+      new StreamController<ChangeEvent<Map<String, dynamic>>>.broadcast(
+          onListen: () {
+    print(
+        'NOTE: You called changes() on an InMemoryRepository, but in-memory Maps do not send change events. ' +
+            'The returned stream will never output any events.');
+  });
   final List<Map<String, dynamic>> _items = [];
 
   @override
   RepositoryQuery<Map<String, dynamic>> all() {
     return new MapRepositoryQuery(new InMemoryQueryBuilder(_items, _changes));
+  }
+
+  @override
+  Stream<ChangeEvent<Map<String, dynamic>>> changes() {
+    return _changes.stream;
   }
 
   @override
@@ -54,5 +64,14 @@ class MapRepository extends Repository<Map<String, dynamic>> {
   @override
   RepositoryQuery<Map<String, dynamic>> raw(query) {
     throw new UnimplementedError('MapRepository does not support raw queries.');
+  }
+
+  @override
+  Future close() async {
+    try {
+      _changes.close();
+    } catch (e) {
+      // Fail silently
+    }
   }
 }

@@ -16,6 +16,4 @@ abstract class SingleQuery<T> {
   Future<UpdateResult<T>> update(Map<String, dynamic> fields);
 
   Future<UpdateResult<T>> updateJson(String fieldName, value);
-
-  SingleQuery<U> value<U>(String fieldName);
 }
