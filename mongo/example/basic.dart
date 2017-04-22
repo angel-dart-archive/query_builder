@@ -4,8 +4,9 @@ import 'package:query_builder_mongo/query_builder_mongo.dart';
 main() async {
   var db = new Db('mongodb://localhost:27017/query_builder_mongo_example');
   await db.open();
+  var store = new MongoDataStore(db);
 
-  var todos = new MongoDataStore(db).repository('todos');
+  var todos = store.repository('todos');
   
   // Easily query as Stream
   var fetched = await todos.all().get().toList();
@@ -23,5 +24,5 @@ main() async {
   var deletion = await todos.deleteAll();
   print('Deletion successful? ${deletion.successful}');
 
-  await db.close();
+  await store.close();
 }

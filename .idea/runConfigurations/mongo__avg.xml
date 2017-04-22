@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="mongo::avg" type="DartCommandLineRunConfigurationType" factoryName="Dart Command Line Application" singleton="true">
+    <option name="filePath" value="$PROJECT_DIR$/mongo/example/avg.dart" />
+    <option name="workingDirectory" value="$PROJECT_DIR$/mongo" />
+    <method />
+  </configuration>
+</component>

@@ -15,17 +15,22 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  Future<num> average(String fieldName) {
+  Future<num> average(String fieldName) async {
     // TODO: implement average
+    var result = await builder.collection.aggregate([
+      {
+        r'$project': {
+          'avg': {r'$avg': fieldName}
+        }
+      }
+    ]);
+
+    print(result);
+    return -1;
   }
 
   @override
-  Stream<ChangeEvent<Map<String, dynamic>>> changes() {
-    // TODO: implement changes
-  }
-
-  @override
-  Future<int> count() => builder.collection.find(builder.query).length;
+  Future<int> count() => builder.collection.count(builder.query);
 
   @override
   Future<DeletionResult<Map<String, dynamic>>> delete() async {

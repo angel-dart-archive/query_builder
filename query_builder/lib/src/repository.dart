@@ -2,12 +2,15 @@ import 'dart:async';
 import 'results/results.dart';
 import 'change_event.dart';
 import 'equality.dart';
-import 'order_by.dart';
 import 'repository_query.dart';
 import 'single_query.dart';
 
 abstract class Repository<T> {
   RepositoryQuery<T> all();
+
+  Stream<ChangeEvent<T>> changes();
+
+  Future close();
 
   Future<DeletionResult<T>> delete(String id) => find(id).delete();
 
@@ -22,19 +25,14 @@ abstract class Repository<T> {
 
   SingleQuery<T> find(String id) => all().where('id', id).first();
 
-  Future<InsertionResult> insert(data);
+  Future<InsertionResult> insert(T data);
 
-  Future<InsertionResult> insertAll(Iterable data);
+  Future<InsertionResult> insertAll(Iterable<T> data);
 
   RepositoryQuery<T> raw(query);
 
-  @deprecated
+  RepositoryQuery<T> where(String fieldName, value) => all().where(fieldName, value);
 
-  /// Use [deleteAll] instead.
-  Future<DeletionResult<T>> truncate() => deleteAll();
-
-  WhereQuery<T> where(String fieldName, value) => all().where(fieldName, value);
-
-  WhereQuery<T> whereEquality(String fieldName, value, Equality equality) =>
+  RepositoryQuery<T> whereEquality(String fieldName, value, Equality equality) =>
       all().whereEquality(fieldName, value, equality);
 }

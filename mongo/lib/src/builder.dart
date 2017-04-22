@@ -4,7 +4,9 @@ import 'package:mutex/mutex.dart';
 class MongoQueryBuilder {
   final ReadWriteMutex mutex;
   final DbCollection collection;
-  final SelectorBuilder query;
+  SelectorBuilder _query;
 
-  MongoQueryBuilder(this.mutex, this.collection, this.query);
+  SelectorBuilder get query => _query ?? (_query = where.exists('_id'));
+
+  MongoQueryBuilder(this.mutex, this.collection, this._query);
 }

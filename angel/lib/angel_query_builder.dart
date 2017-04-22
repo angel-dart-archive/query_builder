@@ -30,6 +30,19 @@ class RepositoryService extends Service {
 
   final Repository<Map<String, dynamic>> repository;
 
+  @override
+  void set app(AngelBase v) {
+    if (v is Angel) {
+      v.justBeforeStop.add((Angel app) async {
+        try {
+          await repository.close();
+        } catch (e) {}
+      });
+    }
+
+    super.app = v;
+  }
+
   RepositoryService(this.repository,
       {this.allowRemoveAll: false,
       this.allowQuery: true,
@@ -134,7 +147,7 @@ class RepositoryService extends Service {
   @override
   void onHooked(HookedService hookedService) {
     if (listenForChanges == true) {
-      repository.all().changes().listen((e) {
+      repository.changes().listen((e) {
         var oldVal = e.oldValue as Model, newVal = e.newValue as Model;
 
         if (e.type == ChangeEventType.CREATED) {

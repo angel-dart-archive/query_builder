@@ -10,13 +10,11 @@ abstract class RepositoryQuery<T> {
 
   Future<num> average(String fieldName);
 
-  Stream<ChangeEvent<T>> changes();
-
   Future<int> count();
 
   Future<DeletionResult<T>> delete();
 
-  RepositoryQuery<T> distinct();
+  RepositoryQuery<T> distinct(String fieldName);
 
   SingleQuery<T> first();
 
