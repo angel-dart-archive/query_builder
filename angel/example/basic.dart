@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:angel_diagnostics/angel_diagnostics.dart';
 import 'package:angel_framework/angel_framework.dart';
 import 'package:angel_query_builder/angel_query_builder.dart';
 import 'package:query_builder_in_memory/query_builder_in_memory.dart';
@@ -13,10 +14,11 @@ main() async {
 Future<Angel> createServer() async {
   var app = new Angel();
   var store = new InMemoryDataStore();
-  app.use('/todos', new RepositoryService(store.repository('todos')));
+  app.use('/todos',
+      new RepositoryService(store.repository('todos')));
 
   // Insert some boilerplate data
-  var service = app.service('todos');
+  var service = app.service('todos') as HookedService;
   await service.create({'hello': 'world'});
   await service.create({'angel': 'framework'});
   await service.create({'michael': 'jackson'});
@@ -31,5 +33,6 @@ Future<Angel> createServer() async {
     stderr..writeln('Fatal: ${e.error}')..writeln(e.stack);
   });
 
+  await app.configure(logRequests());
   return app;
 }
