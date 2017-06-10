@@ -1,0 +1,1 @@
+enum UnionType { NORMAL, ALL }

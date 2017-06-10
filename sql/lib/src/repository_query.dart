@@ -1,41 +1,86 @@
 import 'dart:async';
+import 'package:tuple/tuple.dart';
 import 'package:query_builder/query_builder.dart';
-import 'join_type.dart';
-import 'verb.dart';
-import 'query.dart';
+
+final RegExp _dashComment = new RegExp(r'--+'),
+    _commentStart = new RegExp(r'/\*'),
+// i.e. a malicious user tries to place a semicolon and inject another query
+    _multiQuery = new RegExp(r';[^$]*');
 
 abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
-  final String tableName, verb;
+  final String tableName;
+  final List<String> from = [];
   final Map<String, String> selectFields = {};
   final Map<String, String> whereFields = {};
   final List<String> orConditions = [], distinctFields = [];
-  final Map<String, SQLJoinType> joins = {};
+  final Map<String, Tuple3<JoinType, String, String>> joins = {};
+  final Map<String, UnionType> unions = {};
   final Map<String, OrderBy> sort = {};
-  String groupByField;
+  String groupByField, rawQuery;
   int limit, offset;
 
-  SqlRepositoryQuery(this.tableName, this.verb);
+  SqlRepositoryQuery(this.tableName);
 
-  static String escapeFieldName(String fieldName) {
-    // TODO: Finish escapeFieldName
+  static String sanitizeString(String fieldName) {
+    return fieldName
+        .replaceAll(_multiQuery, '')
+        .replaceAll(_commentStart, '')
+        .replaceAll(_dashComment, '')
+        // If you're running through package:query_builder, you shouldn't need commas anyways
+        .replaceAll(',', '')
+        .replaceAll('\'', '\\\'')
+        // Escape backslashes
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"')
+        // Prevent null-byte
+        .replaceAll('\u0000', '');
+  }
+
+  /// Transforms a value into a sanitized String suitable for SQL.
+  static String safeStringify(value) {
+    if (value is num)
+      return value.toString();
+    else if (value is DateTime) return dateToSql(value, true);
+    return sanitizeString(value.toString());
+  }
+
+  static String dateToSql(DateTime dt, bool time) {
+    if (time) {
+      return "'${dt.year}-${dt.month}-${dt.day}' ${dt.hour}:${dt.minute}:${dt.second}";
+    } else
+      return "'${dt.year}-${dt.month}-${dt.day}'";
   }
 
   Future<int> executeAsInt(String query);
 
   Future<num> executeAsNum(String query);
 
-  /// Transforms a value into a sanitized String suitable for SQL.
-  String stringify(value) {
-    if (value is num)
-      return value.toString();
-    else if (value is DateTime) return dateToSql(value, true);
-    // TODO: Finish stringify
-  }
-
-  String dateToSql(DateTime dt, bool time);
-
   String toSql({bool semicolon: true}) {
+    if (rawQuery != null) return rawQuery;
     // TODO: Finish toSQL
+
+    var buf = new StringBuffer('SELECT');
+
+    // Select fields or *
+    if (selectFields.isNotEmpty)
+      buf.write(' *');
+    else {
+      int i = 0;
+
+      for (var key in selectFields.keys) {
+        if (i++ > 0) buf.write(', ');
+        var v = selectFields[key];
+        if (v == key)
+          buf.write(key);
+        else
+          buf.write('$key as $v');
+      }
+    }
+
+    // From
+    buf.write(from.isEmpty ? ' $tableName' : (' ' + from.join(', ')));
+
+    return buf.toString() + ';';
   }
 
   String toWhereCondition() {
@@ -73,7 +118,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   Future<num> average(String fieldName) {
-    var escaped = escapeFieldName(fieldName);
+    var escaped = sanitizeString(fieldName);
     var query = toSql(semicolon: false);
     return executeAsNum('SELECT AVG(`$escaped`) FROM ($query) AS `value`;');
   }
@@ -85,23 +130,13 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   }
 
   @override
-  Future<DeletionResult<T>> delete() {
-    // TODO: implement delete
-  }
-
-  @override
   RepositoryQuery<T> distinct(String fieldName) {
-    return this..distinctFields.add(escapeFieldName(fieldName));
-  }
-
-  @override
-  SingleQuery<T> first() {
-    // TODO: implement first
+    return this..distinctFields.add(sanitizeString(fieldName));
   }
 
   @override
   RepositoryQuery<T> groupBy(String fieldName) {
-    return this..groupByField = escapeFieldName(fieldName);
+    return this..groupByField = sanitizeString(fieldName);
   }
 
   @override
@@ -111,14 +146,14 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   Future<num> max(String fieldName) {
-    var escaped = escapeFieldName(fieldName);
+    var escaped = sanitizeString(fieldName);
     var query = toSql(semicolon: false);
     return executeAsInt('SELECT MAX(`$escaped`) FROM ($query) AS `value`;');
   }
 
   @override
   Future<num> min(String fieldName) {
-    var escaped = escapeFieldName(fieldName);
+    var escaped = sanitizeString(fieldName);
     var query = toSql(semicolon: false);
     return executeAsInt('SELECT MIN(`$escaped`) FROM ($query) AS `value`;');
   }
@@ -126,25 +161,19 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   @override
   RepositoryQuery<T> orderBy(String fieldName,
       [OrderBy orderBy = OrderBy.ASCENDING]) {
-    return this
-      ..sort[escapeFieldName(fieldName)] = orderBy ?? OrderBy.ASCENDING;
-  }
-
-  @override
-  Future<Iterable> pluck<U>(Iterable<String> fieldNames) {
-    // TODO: implement pluck
+    return this..sort[sanitizeString(fieldName)] = orderBy ?? OrderBy.ASCENDING;
   }
 
   @override
   RepositoryQuery<T> select(Iterable selectors) {
     for (var selector in selectors) {
       if (selector is String) {
-        var escaped = escapeFieldName(selector);
+        var escaped = sanitizeString(selector);
         selectFields[escaped] = escaped;
       } else if (selector is Map) {
         selector.forEach((k, v) {
-          var escaped = escapeFieldName(k.toString());
-          selectFields[escaped] = escapeFieldName(v.toString());
+          var escaped = sanitizeString(k.toString());
+          selectFields[escaped] = sanitizeString(v.toString());
         });
       } else
         throw new ArgumentError('Cannot select $selector in a SQL query.');
@@ -160,7 +189,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   Future<num> sum(String fieldName) {
-    var escaped = escapeFieldName(fieldName);
+    var escaped = sanitizeString(fieldName);
     var query = toSql(semicolon: false);
     return executeAsInt('SELECT SUM(`$escaped`) FROM ($query) AS `value`;');
   }
@@ -171,64 +200,69 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   }
 
   @override
-  RepositoryQuery<T> union(RepositoryQuery<T> other) {
-    // TODO: implement union
+  RepositoryQuery<T> join(
+      String otherTable, String nearColumn, String farColumn,
+      [JoinType joinType = JoinType.FULL]) {
+    return this
+      ..joins[sanitizeString(otherTable)] =
+          new Tuple3<JoinType, String, String>(joinType ?? JoinType.FULL,
+              sanitizeString(nearColumn), sanitizeString(farColumn));
   }
 
   @override
-  RepositoryQuery<T> unionAll(RepositoryQuery<T> other) {
-    // TODO: implement unionAll
-  }
-
-  @override
-  Future<Iterable<UpdateResult<T>>> updateAll(Map<String, dynamic> fields) {
-    // TODO: implement updateAll
+  RepositoryQuery<T> union(RepositoryQuery<T> other,
+      [UnionType type = UnionType.NORMAL]) {
+    if (other is SqlRepositoryQuery<T>) {
+      return this..unions[other.toSql(semicolon: false)] = UnionType.NORMAL;
+    } else
+      throw new ArgumentError(
+          'Can only union a SQL query with another SQL query.');
   }
 
   @override
   RepositoryQuery<T> whereBetween(String fieldName, lower, upper) {
-    var f = stringify(lower), s = stringify(upper);
-    return this..whereFields[escapeFieldName(fieldName)] = 'BETWEEN $f AND $s';
+    var f = safeStringify(lower), s = safeStringify(upper);
+    return this..whereFields[sanitizeString(fieldName)] = 'BETWEEN $f AND $s';
   }
 
   @override
   RepositoryQuery<T> whereDate(String fieldName, DateTime date,
       {bool time: true}) {
     return this
-      ..whereFields[escapeFieldName(fieldName)] =
+      ..whereFields[sanitizeString(fieldName)] =
           '= ' + dateToSql(date, time != false);
   }
 
   @override
   RepositoryQuery<T> whereDay(String fieldName, int day) {
-    return this..whereFields['DAY(`${escapeFieldName(fieldName)}`)'] = '= $day';
+    return this..whereFields['DAY(`${sanitizeString(fieldName)}`)'] = '= $day';
   }
 
   @override
   RepositoryQuery<T> whereEquality(String fieldName, value, Equality equality) {
-    String condition, escaped = escapeFieldName(fieldName);
+    String condition, escaped = sanitizeString(fieldName);
 
     switch (equality) {
       case Equality.EQUAL:
-        condition = '= ' + stringify(value);
+        condition = '= ' + safeStringify(value);
         break;
       case Equality.NOT_EQUAL:
-        condition = 'NOT ' + stringify(value);
+        condition = 'NOT ' + safeStringify(value);
         break;
       case Equality.LESS_THAN:
-        condition = '< ' + stringify(value);
+        condition = '< ' + safeStringify(value);
         break;
       case Equality.LESS_THAN_OR_EQUAL_TO:
-        condition = '<= ' + stringify(value);
+        condition = '<= ' + safeStringify(value);
         break;
       case Equality.GREATER_THAN:
-        condition = '> ' + stringify(value);
+        condition = '> ' + safeStringify(value);
         break;
       case Equality.GREATER_THAN_OR_EQUAL_TO:
-        condition = '>= ' + stringify(value);
+        condition = '>= ' + safeStringify(value);
         break;
       case Equality.LESS_THAN_OR_GREATER_THAN:
-        var str = stringify(value);
+        var str = safeStringify(value);
         whereFields[escaped] = '< ' + str;
         return this..orConditions.add('`$escaped` > $str');
     }
@@ -239,13 +273,13 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   @override
   RepositoryQuery<T> whereIn(String fieldName, Iterable values) {
     int i = 0;
-    var escaped = escapeFieldName(fieldName);
+    var escaped = sanitizeString(fieldName);
 
     for (var value in values) {
       if (i++ == 0) {
-        whereFields[escaped] = '= ' + stringify(value);
+        whereFields[escaped] = '= ' + safeStringify(value);
       } else {
-        orConditions.add('`$escaped` = ' + stringify(value));
+        orConditions.add('`$escaped` = ' + safeStringify(value));
       }
     }
 
@@ -255,33 +289,33 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   @override
   RepositoryQuery<T> whereLike(String fieldName, value) {
     return this
-      ..whereFields['year(`${escapeFieldName(fieldName)}`)'] =
-          'LIKE ' + stringify(value);
+      ..whereFields['year(`${sanitizeString(fieldName)}`)'] =
+          'LIKE ' + safeStringify(value);
   }
 
   @override
   RepositoryQuery<T> whereMonth(String fieldName, int month) {
     return this
-      ..whereFields['MONTH(`${escapeFieldName(fieldName)}`)'] = '= $month';
+      ..whereFields['MONTH(`${sanitizeString(fieldName)}`)'] = '= $month';
   }
 
   @override
   RepositoryQuery<T> whereNotBetween(String fieldName, lower, upper) {
-    var f = stringify(lower), s = stringify(upper);
+    var f = safeStringify(lower), s = safeStringify(upper);
     return this
-      ..whereFields[escapeFieldName(fieldName)] = 'NOT BETWEEN $f AND $s';
+      ..whereFields[sanitizeString(fieldName)] = 'NOT BETWEEN $f AND $s';
   }
 
   @override
   RepositoryQuery<T> whereNotIn(String fieldName, Iterable values) {
     int i = 0;
-    var escaped = escapeFieldName(fieldName);
+    var escaped = sanitizeString(fieldName);
 
     for (var value in values) {
       if (i++ == 0) {
-        whereFields[escaped] = '!= ' + stringify(value);
+        whereFields[escaped] = '!= ' + safeStringify(value);
       } else {
-        orConditions.add('`$escaped` != ' + stringify(value));
+        orConditions.add('`$escaped` != ' + safeStringify(value));
       }
     }
 
@@ -291,6 +325,22 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   @override
   RepositoryQuery<T> whereYear(String fieldName, int year) {
     return this
-      ..whereFields['YEAR(`${escapeFieldName(fieldName)}`)'] = '= $year';
+      ..whereFields['YEAR(`${sanitizeString(fieldName)}`)'] = '= $year';
+  }
+
+  @override
+  RepositoryQuery<T> selfJoin(String t1, String t2) {
+    var escaped = sanitizeString(tableName);
+    return this
+      ..from.addAll([t1, t2].map(sanitizeString).map((t) => '$escaped $t'));
+  }
+
+  @override
+  RepositoryQuery<T> or(RepositoryQuery<T> other) {
+    if (other is SqlRepositoryQuery<T>) {
+      return this..orConditions.add(other.toWhereCondition());
+    } else
+      throw new ArgumentError(
+          'SQL queries can only perform an \'OR\' on another SQL query.');
   }
 }

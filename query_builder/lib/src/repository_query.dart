@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'results/results.dart';
-import 'change_event.dart';
 import 'equality.dart';
+import 'join_type.dart';
 import 'order_by.dart';
 import 'single_query.dart';
+import 'union_type.dart';
 
 abstract class RepositoryQuery<T> {
   Stream<T> get();
@@ -49,9 +50,14 @@ abstract class RepositoryQuery<T> {
 
   RepositoryQuery<T> take(int count);
 
-  RepositoryQuery<T> union(RepositoryQuery<T> other);
+  RepositoryQuery<T> join(
+      String otherTable, String nearColumn, String farColumn,
+      [JoinType joinType = JoinType.FULL]);
 
-  RepositoryQuery<T> unionAll(RepositoryQuery<T> other);
+  RepositoryQuery<T> selfJoin(String t1, String t2);
+
+  RepositoryQuery<T> union(RepositoryQuery<T> other,
+      [UnionType unionType = UnionType.NORMAL]);
 
   Future<Iterable<UpdateResult<T>>> updateAll(Map<String, dynamic> fields);
 
@@ -127,8 +133,6 @@ abstract class RepositoryQuery<T> {
 
     return c.future;
   }
-
-  RepositoryQuery<T> and(RepositoryQuery<T> other);
 
   RepositoryQuery<T> or(RepositoryQuery<T> other);
 }

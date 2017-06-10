@@ -14,6 +14,4 @@ abstract class SingleQuery<T> {
       [int amount = 1, Map<String, dynamic> additionalFields = const {}]);
 
   Future<UpdateResult<T>> update(Map<String, dynamic> fields);
-
-  Future<UpdateResult<T>> updateJson(String fieldName, value);
 }
