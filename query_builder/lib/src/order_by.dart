@@ -1,1 +1,1 @@
-enum OrderBy { ASCENDING, DESCENDING }
+enum OrderBy { ASCENDING, DESCENDING, RANDOM }

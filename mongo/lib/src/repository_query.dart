@@ -159,12 +159,6 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  RepositoryQuery<Map<String, dynamic>> whereColumn(
-      String first, String second) {
-    // TODO: implement whereColumn
-  }
-
-  @override
   RepositoryQuery<Map<String, dynamic>> whereDate(
       String fieldName, DateTime date) {
     return _changeBuilder((q) =>
@@ -197,19 +191,9 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
   }
 
   @override
-  RepositoryQuery<Map<String, dynamic>> whereHasField(String fieldName) {
-    return _changeBuilder((q) => q.exists(fieldName));
-  }
-
-  @override
   RepositoryQuery<Map<String, dynamic>> whereIn(
       String fieldName, Iterable values) {
     // TODO: implement whereIn
-  }
-
-  @override
-  RepositoryQuery<Map<String, dynamic>> whereJson(String fieldName, value) {
-    // TODO: implement whereJson
   }
 
   @override
