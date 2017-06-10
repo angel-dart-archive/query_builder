@@ -6,10 +6,12 @@ import 'query.dart';
 
 abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   final String tableName, verb;
-  final List<String> selectFields = [];
-  final Map<String, dynamic> whereFields = {};
-  final List<String> orConditions = [];
+  final Map<String, String> selectFields = {};
+  final Map<String, String> whereFields = {};
+  final List<String> orConditions = [], distinctFields = [];
   final Map<String, SQLJoinType> joins = {};
+  final Map<String, OrderBy> sort = {};
+  String groupByField;
   int limit, offset;
 
   SqlRepositoryQuery(this.tableName, this.verb);
@@ -18,24 +20,68 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
     // TODO: Finish escapeFieldName
   }
 
+  Future<int> executeAsInt(String query);
+
+  Future<num> executeAsNum(String query);
+
   /// Transforms a value into a sanitized String suitable for SQL.
-  static String stringify(value) {
-    if (value is num) return value.toString();
+  String stringify(value) {
+    if (value is num)
+      return value.toString();
+    else if (value is DateTime) return dateToSql(value, true);
     // TODO: Finish stringify
   }
 
-  String toSql() {
+  String dateToSql(DateTime dt, bool time);
+
+  String toSql({bool semicolon: true}) {
     // TODO: Finish toSQL
+  }
+
+  String toWhereCondition() {
+    var str = '';
+
+    if (whereFields.isEmpty) {
+      return compileOrConditions();
+    } else {
+      int i = 0;
+
+      whereFields.forEach((k, v) {
+        if (i++ > 0) str += ' AND ';
+        str += '($v)';
+      });
+
+      var or = compileOrConditions();
+      if (or != null) str += ' OR ($or)';
+    }
+
+    return str;
+  }
+
+  String compileOrConditions() {
+    if (orConditions.isEmpty) return null;
+    var str = '';
+
+    for (int i = 0; i < orConditions.length; i++) {
+      var cond = '(${orConditions[i]})';
+      if (i > 0) str += ' OR ';
+      str += cond;
+    }
+
+    return str;
   }
 
   @override
   Future<num> average(String fieldName) {
-    // TODO: implement average
+    var escaped = escapeFieldName(fieldName);
+    var query = toSql(semicolon: false);
+    return executeAsNum('SELECT AVG(`$escaped`) FROM ($query) AS `value`;');
   }
 
   @override
   Future<int> count() {
-    // TODO: implement count
+    var query = toSql(semicolon: false);
+    return executeAsInt('SELECT COUNT(*) FROM ($query) AS `value`;');
   }
 
   @override
@@ -45,7 +91,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> distinct(String fieldName) {
-    // TODO: implement distinct
+    return this..distinctFields.add(escapeFieldName(fieldName));
   }
 
   @override
@@ -55,28 +101,33 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> groupBy(String fieldName) {
-    // TODO: implement groupBy
+    return this..groupByField = escapeFieldName(fieldName);
   }
 
   @override
   RepositoryQuery<T> inRandomOrder() {
-    // TODO: implement inRandomOrder
+    return this..sort['*'] = OrderBy.RANDOM;
   }
 
   @override
   Future<num> max(String fieldName) {
-    // TODO: implement max
+    var escaped = escapeFieldName(fieldName);
+    var query = toSql(semicolon: false);
+    return executeAsInt('SELECT MAX(`$escaped`) FROM ($query) AS `value`;');
   }
 
   @override
   Future<num> min(String fieldName) {
-    // TODO: implement min
+    var escaped = escapeFieldName(fieldName);
+    var query = toSql(semicolon: false);
+    return executeAsInt('SELECT MIN(`$escaped`) FROM ($query) AS `value`;');
   }
 
   @override
   RepositoryQuery<T> orderBy(String fieldName,
       [OrderBy orderBy = OrderBy.ASCENDING]) {
-    // TODO: implement orderBy
+    return this
+      ..sort[escapeFieldName(fieldName)] = orderBy ?? OrderBy.ASCENDING;
   }
 
   @override
@@ -86,7 +137,20 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> select(Iterable selectors) {
-    // TODO: implement select
+    for (var selector in selectors) {
+      if (selector is String) {
+        var escaped = escapeFieldName(selector);
+        selectFields[escaped] = escaped;
+      } else if (selector is Map) {
+        selector.forEach((k, v) {
+          var escaped = escapeFieldName(k.toString());
+          selectFields[escaped] = escapeFieldName(v.toString());
+        });
+      } else
+        throw new ArgumentError('Cannot select $selector in a SQL query.');
+    }
+
+    return this;
   }
 
   @override
@@ -96,7 +160,9 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   Future<num> sum(String fieldName) {
-    // TODO: implement sum
+    var escaped = escapeFieldName(fieldName);
+    var query = toSql(semicolon: false);
+    return executeAsInt('SELECT SUM(`$escaped`) FROM ($query) AS `value`;');
   }
 
   @override
@@ -120,13 +186,17 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   }
 
   @override
-  RepositoryQuery<T> whereBetween(String fieldName, Iterable values) {
-    // TODO: implement whereBetween
+  RepositoryQuery<T> whereBetween(String fieldName, lower, upper) {
+    var f = stringify(lower), s = stringify(upper);
+    return this..whereFields[escapeFieldName(fieldName)] = 'BETWEEN $f AND $s';
   }
 
   @override
-  RepositoryQuery<T> whereDate(String fieldName, DateTime date) {
-    // TODO: implement whereDate
+  RepositoryQuery<T> whereDate(String fieldName, DateTime date,
+      {bool time: true}) {
+    return this
+      ..whereFields[escapeFieldName(fieldName)] =
+          '= ' + dateToSql(date, time != false);
   }
 
   @override
@@ -196,8 +266,10 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   }
 
   @override
-  RepositoryQuery<T> whereNotBetween(String fieldName, Iterable values) {
-    // TODO: implement whereNotBetween
+  RepositoryQuery<T> whereNotBetween(String fieldName, lower, upper) {
+    var f = stringify(lower), s = stringify(upper);
+    return this
+      ..whereFields[escapeFieldName(fieldName)] = 'NOT BETWEEN $f AND $s';
   }
 
   @override

@@ -154,7 +154,7 @@ class MongoRepositoryQuery extends RepositoryQuery<Map<String, dynamic>> {
 
   @override
   RepositoryQuery<Map<String, dynamic>> whereBetween(
-      String fieldName, Iterable values) {
+      String fieldName, lower, upper) {
     // TODO: implement whereBetween
   }
 

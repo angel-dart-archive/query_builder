@@ -70,11 +70,12 @@ abstract class RepositoryQuery<T> {
   RepositoryQuery<T> whereNot(String fieldName, value) =>
       whereEquality(fieldName, value, Equality.NOT_EQUAL);
 
-  RepositoryQuery<T> whereBetween(String fieldName, Iterable values);
+  RepositoryQuery<T> whereBetween(String fieldName, lower, upper);
 
-  RepositoryQuery<T> whereNotBetween(String fieldName, Iterable values);
+  RepositoryQuery<T> whereNotBetween(String fieldName, lower, upper);
 
-  RepositoryQuery<T> whereDate(String fieldName, DateTime date);
+  RepositoryQuery<T> whereDate(String fieldName, DateTime date,
+      {bool time: true});
 
   RepositoryQuery<T> whereDay(String fieldName, int day);
 
@@ -92,7 +93,8 @@ abstract class RepositoryQuery<T> {
 
   RepositoryQuery<T> whereNull(String fieldName) => where(fieldName, null);
 
-  RepositoryQuery<T> whereNotNull(String fieldName) => whereNot(fieldName, null);
+  RepositoryQuery<T> whereNotNull(String fieldName) =>
+      whereNot(fieldName, null);
 
   Future<Iterable> chunk(int threshold, FutureOr callback(List<T> items)) {
     var c = new Completer<List>();
