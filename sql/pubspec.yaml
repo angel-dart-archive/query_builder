@@ -7,6 +7,8 @@ environment:
 dependencies:
   query_builder: ^0.0.0
   tuple: ^1.0.0
+dev_dependencies:
+  test: ^0.12.0
 dependency_overrides:
   query_builder:
     path: ../query_builder

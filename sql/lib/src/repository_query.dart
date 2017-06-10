@@ -4,7 +4,7 @@ import 'package:query_builder/query_builder.dart';
 
 final RegExp _dashComment = new RegExp(r'--+'),
     _commentStart = new RegExp(r'/\*'),
-// i.e. a malicious user tries to place a semicolon and inject another query
+    // i.e. a malicious user tries to place a semicolon and inject another query
     _multiQuery = new RegExp(r';[^$]*');
 
 abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
@@ -12,12 +12,13 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   final List<String> from = [];
   final Map<String, String> selectFields = {};
   final Map<String, String> whereFields = {};
-  final List<String> orConditions = [], distinctFields = [];
+  final List<String> orConditions = [];
   final Map<String, Tuple3<JoinType, String, String>> joins = {};
   final Map<String, UnionType> unions = {};
   final Map<String, OrderBy> sort = {};
   String groupByField, rawQuery;
   int limit, offset;
+  bool isDistinct = false;
 
   SqlRepositoryQuery(this.tableName);
 
@@ -40,7 +41,9 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   static String safeStringify(value) {
     if (value is num)
       return value.toString();
-    else if (value is DateTime) return dateToSql(value, true);
+    else if (value is DateTime)
+      return dateToSql(value, true);
+    else if (value == null) return 'NULL';
     return sanitizeString(value.toString());
   }
 
@@ -57,28 +60,66 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   String toSql({bool semicolon: true}) {
     if (rawQuery != null) return rawQuery;
-    // TODO: Finish toSQL
 
     var buf = new StringBuffer('SELECT');
 
+    if (isDistinct == true) buf.write(' DISTINCT');
+
     // Select fields or *
-    if (selectFields.isNotEmpty)
+    if (selectFields.isEmpty)
       buf.write(' *');
     else {
       int i = 0;
 
       for (var key in selectFields.keys) {
-        if (i++ > 0) buf.write(', ');
+        if (i++ > 0) buf.write(',');
         var v = selectFields[key];
         if (v == key)
-          buf.write(key);
+          buf.write(' `$key`');
         else
-          buf.write('$key as $v');
+          buf.write(' `$key` AS `$v`');
       }
     }
 
     // From
-    buf.write(from.isEmpty ? ' $tableName' : (' ' + from.join(', ')));
+    buf.write(from.isEmpty
+        ? ' FROM `${sanitizeString(tableName)}`'
+        : (' ' + from.map((s) => '`$s`').join(', ')));
+
+    // Where
+    var whereCond = toWhereCondition();
+    if (whereCond != null) buf.write(' WHERE $whereCond');
+
+    // Group by
+    if (groupByField != null) buf.write(' GROUP BY `$groupByField`');
+
+    // Order by
+    for (var key in sort.keys) {
+      var v = orderByToString(sort[key]);
+
+      if (key == '*') {
+        buf.write(' ORDER BY $v');
+        break;
+      } else
+        buf.write(' ORDER BY $key $v');
+    }
+
+    // Limit, offset
+    if (offset != null) buf.write(' OFFSET $offset');
+    if (limit != null) buf.write(' LIMIT $limit');
+
+    // Joins
+    for (var table in joins.keys) {
+      var tuple = joins[table];
+      var type = joinTypeToString(tuple.item1);
+      buf.write(' $type JOIN `$table` ON ${tuple.item1}=${tuple.item2}');
+    }
+
+    // Unions
+    for (var key in unions.keys) {
+      var type = unionTypeToString(unions[key]);
+      buf.write(' $type $key');
+    }
 
     return buf.toString() + ';';
   }
@@ -93,11 +134,11 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
       whereFields.forEach((k, v) {
         if (i++ > 0) str += ' AND ';
-        str += '($v)';
+        str += '`$k` $v';
       });
 
       var or = compileOrConditions();
-      if (or != null) str += ' OR ($or)';
+      if (or != null) str += ' OR $or';
     }
 
     return str;
@@ -108,7 +149,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
     var str = '';
 
     for (int i = 0; i < orConditions.length; i++) {
-      var cond = '(${orConditions[i]})';
+      var cond = '${orConditions[i]}';
       if (i > 0) str += ' OR ';
       str += cond;
     }
@@ -131,7 +172,9 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> distinct(String fieldName) {
-    return this..distinctFields.add(sanitizeString(fieldName));
+    return this
+      ..isDistinct = true
+      ..select([fieldName]);
   }
 
   @override
@@ -161,6 +204,9 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   @override
   RepositoryQuery<T> orderBy(String fieldName,
       [OrderBy orderBy = OrderBy.ASCENDING]) {
+    if (orderBy == OrderBy.RANDOM)
+      throw new UnsupportedError(
+          'Cannot order by `OrderBy.RANDOM`. Use `inRandomOrder()` instead.');
     return this..sort[sanitizeString(fieldName)] = orderBy ?? OrderBy.ASCENDING;
   }
 
