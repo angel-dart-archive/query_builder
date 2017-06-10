@@ -8,6 +8,8 @@ import 'package:query_builder_sql/query_builder_sql.dart';
 Map<String, dynamic> rowToMap(List row, List<String> selectFields) {
   Map<String, dynamic> result = {};
 
+  // TODO: Get field names if selectFields is empty
+
   for (int i = 0; i < selectFields.length; i++) {
     result[selectFields[i]] = row[i];
   }
