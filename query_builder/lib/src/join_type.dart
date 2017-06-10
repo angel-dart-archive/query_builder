@@ -1,4 +1,4 @@
-enum JoinType { INNER, LEFT, RIGHT, FULL }
+enum JoinType { INNER, LEFT, RIGHT, FULL_OUTER }
 
 String joinTypeToString(JoinType type) {
   switch (type) {
@@ -8,7 +8,7 @@ String joinTypeToString(JoinType type) {
       return 'LEFT';
     case JoinType.RIGHT:
       return 'RIGHT';
-    case JoinType.FULL:
+    case JoinType.FULL_OUTER:
       return 'FULL OUTER';
   }
 

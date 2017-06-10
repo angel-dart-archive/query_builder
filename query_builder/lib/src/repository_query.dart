@@ -15,7 +15,7 @@ abstract class RepositoryQuery<T> {
 
   Future<DeletionResult<T>> delete();
 
-  RepositoryQuery<T> distinct(String fieldName);
+  RepositoryQuery<T> distinct(Iterable<String> fieldNames);
 
   SingleQuery<T> first();
 
@@ -52,7 +52,7 @@ abstract class RepositoryQuery<T> {
 
   RepositoryQuery<T> join(
       String otherTable, String nearColumn, String farColumn,
-      [JoinType joinType = JoinType.FULL]);
+      [JoinType joinType = JoinType.INNER]);
 
   RepositoryQuery<T> selfJoin(String t1, String t2);
 
@@ -133,6 +133,8 @@ abstract class RepositoryQuery<T> {
 
     return c.future;
   }
+
+  RepositoryQuery<T> not(RepositoryQuery<T> other);
 
   RepositoryQuery<T> or(RepositoryQuery<T> other);
 }

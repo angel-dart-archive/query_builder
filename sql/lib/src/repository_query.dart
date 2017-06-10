@@ -47,11 +47,18 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
     return sanitizeString(value.toString());
   }
 
+  static String intToString(int n) {
+    if (n < 10 && n >= 0)
+      return '0$n';
+    else
+      return n.toString();
+  }
+
   static String dateToSql(DateTime dt, bool time) {
     if (time) {
-      return "'${dt.year}-${dt.month}-${dt.day}' ${dt.hour}:${dt.minute}:${dt.second}";
+      return "'${intToString(dt.year)}-${intToString(dt.month)}-${intToString(dt.day)} ${intToString(dt.hour)}:${intToString(dt.minute)}:${intToString(dt.second)}'";
     } else
-      return "'${dt.year}-${dt.month}-${dt.day}'";
+      return "'${intToString(dt.year)}-${intToString(dt.month)}-${intToString(dt.day)}'";
   }
 
   Future<int> executeAsInt(String query);
@@ -101,7 +108,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
         buf.write(' ORDER BY $v');
         break;
       } else
-        buf.write(' ORDER BY $key $v');
+        buf.write(' ORDER BY `$key` $v');
     }
 
     // Limit, offset
@@ -112,16 +119,17 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
     for (var table in joins.keys) {
       var tuple = joins[table];
       var type = joinTypeToString(tuple.item1);
-      buf.write(' $type JOIN `$table` ON ${tuple.item1}=${tuple.item2}');
+      buf.write(' $type JOIN `$table` ON `${tuple.item2}` = `${tuple.item3}`');
     }
 
     // Unions
-    for (var key in unions.keys) {
-      var type = unionTypeToString(unions[key]);
-      buf.write(' $type $key');
+    for (var query in unions.keys) {
+      var type = unionTypeToString(unions[query]);
+      buf.write(' $type ($query)');
     }
 
-    return buf.toString() + ';';
+    if (semicolon != false) buf.write(';');
+    return buf.toString();
   }
 
   String toWhereCondition() {
@@ -171,10 +179,10 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   }
 
   @override
-  RepositoryQuery<T> distinct(String fieldName) {
+  RepositoryQuery<T> distinct(Iterable<String> fieldNames) {
     return this
       ..isDistinct = true
-      ..select([fieldName]);
+      ..select(fieldNames);
   }
 
   @override
@@ -248,10 +256,10 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   @override
   RepositoryQuery<T> join(
       String otherTable, String nearColumn, String farColumn,
-      [JoinType joinType = JoinType.FULL]) {
+      [JoinType joinType = JoinType.INNER]) {
     return this
       ..joins[sanitizeString(otherTable)] =
-          new Tuple3<JoinType, String, String>(joinType ?? JoinType.FULL,
+          new Tuple3<JoinType, String, String>(joinType ?? JoinType.INNER,
               sanitizeString(nearColumn), sanitizeString(farColumn));
   }
 
@@ -259,7 +267,8 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   RepositoryQuery<T> union(RepositoryQuery<T> other,
       [UnionType type = UnionType.NORMAL]) {
     if (other is SqlRepositoryQuery<T>) {
-      return this..unions[other.toSql(semicolon: false)] = UnionType.NORMAL;
+      return this
+        ..unions[other.toSql(semicolon: false)] = type ?? UnionType.NORMAL;
     } else
       throw new ArgumentError(
           'Can only union a SQL query with another SQL query.');
@@ -293,7 +302,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
         condition = '= ' + safeStringify(value);
         break;
       case Equality.NOT_EQUAL:
-        condition = 'NOT ' + safeStringify(value);
+        condition = '!= ' + safeStringify(value);
         break;
       case Equality.LESS_THAN:
         condition = '< ' + safeStringify(value);
@@ -318,18 +327,11 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> whereIn(String fieldName, Iterable values) {
-    int i = 0;
-    var escaped = sanitizeString(fieldName);
-
-    for (var value in values) {
-      if (i++ == 0) {
-        whereFields[escaped] = '= ' + safeStringify(value);
-      } else {
-        orConditions.add('`$escaped` = ' + safeStringify(value));
-      }
-    }
-
-    return this;
+    var f = values.map((v) {
+      var s = safeStringify(v);
+      return v is String ? '`$s`' : s;
+    }).join(', ');
+    return this..whereFields[sanitizeString(fieldName)] = 'IN ($f)';
   }
 
   @override
@@ -354,18 +356,11 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> whereNotIn(String fieldName, Iterable values) {
-    int i = 0;
-    var escaped = sanitizeString(fieldName);
-
-    for (var value in values) {
-      if (i++ == 0) {
-        whereFields[escaped] = '!= ' + safeStringify(value);
-      } else {
-        orConditions.add('`$escaped` != ' + safeStringify(value));
-      }
-    }
-
-    return this;
+    var f = values.map((v) {
+      var s = safeStringify(v);
+      return v is String ? '`$s`' : s;
+    }).join(', ');
+    return this..whereFields[sanitizeString(fieldName)] = 'NOT IN ($f)';
   }
 
   @override
