@@ -1,4 +1,7 @@
 # query_builder
+[![version 0.0.1](https://img.shields.io/badge/pub-0.0.1-red.svg)](https://pub.dartlang.org/packages/query_builder)
+[![build status](https://travis-ci.org/angel-dart/query_builder.svg)](https://travis-ci.org/angel-dart/query_builder)
+
 Powerful, database-agnostic query builder for Dart applications.
 
 `query_builder` is heavily inspired by 
