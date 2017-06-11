@@ -12,13 +12,13 @@ packages:
       name: angel_auth
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.4+1"
+    version: "1.0.5"
   angel_client:
     description:
       name: angel_client
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.4"
+    version: "1.0.6"
   angel_diagnostics:
     description:
       name: angel_diagnostics
@@ -36,13 +36,13 @@ packages:
       name: angel_route
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.3"
+    version: "1.0.4"
   angel_test:
     description:
       name: angel_test
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.5+1"
+    version: "1.0.6"
   angel_validate:
     description:
       name: angel_validate
@@ -54,7 +54,7 @@ packages:
       name: angel_websocket
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.6+1"
+    version: "1.0.7"
   args:
     description:
       name: args
@@ -132,7 +132,7 @@ packages:
       name: csslib
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.13.7+1"
+    version: "0.14.0"
   flatten:
     description:
       name: flatten
@@ -162,7 +162,7 @@ packages:
       name: html
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.13.1"
+    version: "0.13.2"
   http:
     description:
       name: http
@@ -258,7 +258,7 @@ packages:
       name: path
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.4.1"
+    version: "1.4.2"
   plugin:
     description:
       name: plugin
@@ -279,10 +279,10 @@ packages:
     version: "1.3.2"
   query_builder:
     description:
-      path: "..\\query_builder"
-      relative: true
-    source: path
-    version: "0.0.1"
+      name: query_builder
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.2"
   query_builder_in_memory:
     description:
       path: "..\\in_memory"
@@ -372,7 +372,7 @@ packages:
       name: test
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.12.20+13"
+    version: "0.12.21"
   typed_data:
     description:
       name: typed_data
