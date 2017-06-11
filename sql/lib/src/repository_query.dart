@@ -12,7 +12,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   final List<String> from = [];
   final Map<String, String> selectFields = {};
   final Map<String, String> whereFields = {};
-  final List<String> orConditions = [];
+  final List<String> orConditions = [], notConditions = [];
   final Map<String, Tuple3<JoinType, String, String>> joins = {};
   final Map<String, UnionType> unions = {};
   final Map<String, OrderBy> sort = {};
@@ -44,7 +44,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
     else if (value is DateTime)
       return dateToSql(value, true);
     else if (value == null) return 'NULL';
-    return sanitizeString(value.toString());
+    return '`' + sanitizeString(value.toString()) + '`';
   }
 
   static String intToString(int n) {
@@ -88,10 +88,20 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
       }
     }
 
-    // From
-    buf.write(from.isEmpty
-        ? ' FROM `${sanitizeString(tableName)}`'
-        : (' ' + from.map((s) => '`$s`').join(', ')));
+    buf.write(' FROM ');
+
+    if (from.isEmpty)
+      buf.write('`${sanitizeString(tableName)}`');
+    else {
+      for (int i = 0; i < from.length; i++) {
+        if (i > 0) buf.write(', ');
+        var key = from[i];
+        if (key.startsWith('!'))
+          buf.write(key.substring(1));
+        else
+          buf.write('`$key`');
+      }
+    }
 
     // Where
     var whereCond = toWhereCondition();
@@ -142,7 +152,8 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
       whereFields.forEach((k, v) {
         if (i++ > 0) str += ' AND ';
-        str += '`$k` $v';
+        var kk = k.startsWith('!') ? k.substring(1) : '`$k`';
+        str += '$kk $v';
       });
 
       var or = compileOrConditions();
@@ -153,12 +164,23 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
   }
 
   String compileOrConditions() {
-    if (orConditions.isEmpty) return null;
+    if (orConditions.isEmpty && notConditions.isEmpty) return null;
     var str = '';
 
     for (int i = 0; i < orConditions.length; i++) {
       var cond = '${orConditions[i]}';
       if (i > 0) str += ' OR ';
+      str += cond;
+    }
+
+    // Maybe add not
+    if (orConditions.isNotEmpty && notConditions.isNotEmpty)
+      str += ' AND NOT ';
+    else if (notConditions.isNotEmpty) str += 'NOT ';
+
+    for (int i = 0; i < notConditions.length; i++) {
+      var cond = '${notConditions[i]}';
+      if (i > 0) str += ' AND NOT ';
       str += cond;
     }
 
@@ -290,7 +312,7 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> whereDay(String fieldName, int day) {
-    return this..whereFields['DAY(`${sanitizeString(fieldName)}`)'] = '= $day';
+    return this..whereFields['!DAY(`${sanitizeString(fieldName)}`)'] = '= $day';
   }
 
   @override
@@ -327,24 +349,20 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> whereIn(String fieldName, Iterable values) {
-    var f = values.map((v) {
-      var s = safeStringify(v);
-      return v is String ? '`$s`' : s;
-    }).join(', ');
+    var f = values.map(safeStringify).join(', ');
     return this..whereFields[sanitizeString(fieldName)] = 'IN ($f)';
   }
 
   @override
   RepositoryQuery<T> whereLike(String fieldName, value) {
     return this
-      ..whereFields['year(`${sanitizeString(fieldName)}`)'] =
-          'LIKE ' + safeStringify(value);
+      ..whereFields[sanitizeString(fieldName)] = 'LIKE ' + safeStringify(value);
   }
 
   @override
   RepositoryQuery<T> whereMonth(String fieldName, int month) {
     return this
-      ..whereFields['MONTH(`${sanitizeString(fieldName)}`)'] = '= $month';
+      ..whereFields['!MONTH(`${sanitizeString(fieldName)}`)'] = '= $month';
   }
 
   @override
@@ -356,24 +374,22 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
 
   @override
   RepositoryQuery<T> whereNotIn(String fieldName, Iterable values) {
-    var f = values.map((v) {
-      var s = safeStringify(v);
-      return v is String ? '`$s`' : s;
-    }).join(', ');
+    var f = values.map(safeStringify).join(', ');
     return this..whereFields[sanitizeString(fieldName)] = 'NOT IN ($f)';
   }
 
   @override
   RepositoryQuery<T> whereYear(String fieldName, int year) {
     return this
-      ..whereFields['YEAR(`${sanitizeString(fieldName)}`)'] = '= $year';
+      ..whereFields['!YEAR(`${sanitizeString(fieldName)}`)'] = '= $year';
   }
 
   @override
   RepositoryQuery<T> selfJoin(String t1, String t2) {
     var escaped = sanitizeString(tableName);
     return this
-      ..from.addAll([t1, t2].map(sanitizeString).map((t) => '$escaped $t'));
+      ..from
+          .addAll([t1, t2].map(sanitizeString).map((t) => '!`$escaped` `$t`'));
   }
 
   @override
@@ -383,5 +399,14 @@ abstract class SqlRepositoryQuery<T> extends RepositoryQuery<T> {
     } else
       throw new ArgumentError(
           'SQL queries can only perform an \'OR\' on another SQL query.');
+  }
+
+  @override
+  RepositoryQuery<T> not(RepositoryQuery<T> other) {
+    if (other is SqlRepositoryQuery<T>) {
+      return this..notConditions.add(other.toWhereCondition());
+    } else
+      throw new ArgumentError(
+          'SQL queries can only perform an \'NOT\' on another SQL query.');
   }
 }
